@@ -29,7 +29,9 @@ rule mkfastq:
 
 rule cat_fastq:
  input:
-  "/projects/dylan/gen_fastq_output/SCOP_9/190707_A00642_0027_AH7MWNDRXX/outs/fastq_path/H7MWNDRXX/{sample_name}/{sample_name}_S1_L00{lane}_{read}_001.fastq.gz"
+  read = "/projects/dylan/gen_fastq_output/SCOP_9/190707_A00642_0027_AH7MWNDRXX/outs/fastq_path/H7MWNDRXX/{sample_name}/{sample_name}_S1_L00{lane}_{read}_001.fastq.gz"
+  test = "/projects/dylan/gen_fastq_output/SCOP_9/190707_A00642_0027_AH7MWNDRXX/outs/fastq_path/H7MWNDRXX/{sample_name}/{sample_name}_S1_L00{lane}_{read}_001.fastq.gz"
+
  output:
 
  shell:
