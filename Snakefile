@@ -11,6 +11,11 @@ Dependencies:
   - fastqc
 
   - Kallisto, Alevin, Starsolo etc. 
+
+
+  - Kallisto
+    - kb-python (wrapper for Kallisto and Bedtools)
+    - /tools/anaconda/envs/lhv464/kallisto/lib/python3.7/site-packages/kb_python/
 """
 
 #configfile: "config.yaml"
@@ -22,6 +27,9 @@ sample_name = ["ZA10","ZA12"]
 read = ["R1","R2"]
 lane = ["1","2"]
 #FC_ID = ["H7MWNDRXX"]
+path_kallisto = "/tools/anaconda/envs/lhv464/kallisto/lib/python3.7/site-packages/kb_python/bins/linux/kallisto/kallisto"
+path_bustools = "/tools/anaconda/envs/lhv464/kallisto/lib/python3.7/site-packages/kb_python/bins/linux/bustools/bustools"
+
 
 dict_sample_name_s = {"ZA10": "S1", "ZA12": "S2"}
 dict_sample_name_lane = {"ZA10": "L002", "ZA12": "L002"}
@@ -53,7 +61,14 @@ rule all:
       project = project,
       run_name = run_name,
       sample_name = sample_name,
-      lane = 2) #rule fastqc
+      lane = 2), 
+    #rule fastqc
+    expand("{OUT_DIR}kallisto/{project}/ZA10",
+      OUT_DIR = OUT_DIR,
+      project = project),
+    expand("{OUT_DIR}kite_count/{project}/ZA10",
+      OUT_DIR = OUT_DIR,
+      project = project) #just testing ZA10 for now
   #Final outputs of Kallisto
   #expand("/projects/dylan/count_mats/SCOP_9/{sample_name}/counts_filtered/spliced.mtx", sample_name=sample_name),
   #expand("/projects/dylan/gen_fastq_output/fastqc/SCOP_9/{sample_name}_{lane}/fastqc/results.html", sample_name=sample_name, lane=lane)
@@ -235,8 +250,86 @@ rule fastqc:
     mkdir {params.OUT_DIR}/fastqc/{params.project}/{params.run_name}/{params.sample_name} &&\
     fastqc --outdir={params.OUT_DIR}/fastqc/{params.project}/{params.run_name}/{params.sample_name} {input.read1} {input.read2}"
 
-
 rule kallisto:
+  """
+
+  -o /home/cbmr/xbq246/20200117-dylan_pipeline/development/outs/gen_fastq_output/kallisto/SCOP9/ZA10
+  """
+  input:
+    read1 = lambda wildcards: OUT_DIR + "{project}/{run_name}/outs/fastq_path/H7MWNDRXX/{sample_name}/{sample_name}__concat__R1_001.fastq.gz".format(\
+      project = wildcards.project,
+      run_name = run_name,
+      sample_name = wildcards.sample_name) ,
+    read2 = lambda wildcards: OUT_DIR + "{project}/{run_name}/outs/fastq_path/H7MWNDRXX/{sample_name}/{sample_name}__concat__R2_001.fastq.gz".format(\
+      project = wildcards.project,
+      run_name = run_name,
+      sample_name = wildcards.sample_name)
+  output: 
+    directory(OUT_DIR + "kallisto/{project}/{sample_name}")
+  params:
+    path_kallisto = path_kallisto,
+    sample_name = "ZA10",
+    OUT_DIR = OUT_DIR,
+    project = lambda wildcards: wildcards.project  
+  shell:
+    "{params.path_kallisto} bus \
+    -i /home/cbmr/jph712/projects/serup_velocytoLoompy/velocity_getting_started/index.idx \
+    -o {params.OUT_DIR}kallisto/{params.project}/{params.sample_name} \
+    -x 10xv3 \
+    -t 50 \
+    {input.read1} {input.read2}"
+
+
+rule kite_count:
+  """
+  Requires kb-python wrapper, I believe. Explains pretty why command line tools
+  used in other parts of the script would be within a python library, 
+  which at first made no sense at all until now. 
+  """
+  input:
+    read1 = lambda wildcards: OUT_DIR + "{project}/{run_name}/outs/fastq_path/H7MWNDRXX/{sample_name}/{sample_name}__concat__R1_001.fastq.gz".format(\
+      project = wildcards.project,
+      run_name = run_name,
+      sample_name = wildcards.sample_name) ,
+    read2 = lambda wildcards: OUT_DIR + "{project}/{run_name}/outs/fastq_path/H7MWNDRXX/{sample_name}/{sample_name}__concat__R2_001.fastq.gz".format(\
+      project = wildcards.project,
+      run_name = run_name,
+      sample_name = wildcards.sample_name)
+  output: 
+    directory(OUT_DIR + "kite_count/{project}/{sample_name}") 
+  conda:
+    "envs/scpipe.yml"
+  params:
+    path_kallisto = path_kallisto,
+    sample_name = "ZA10",
+    OUT_DIR = OUT_DIR,
+    project = lambda wildcards: wildcards.project  
+  shell:
+    "kb count --h5ad \
+     -i /home/cbmr/jph712/projects/serup_velocytoLoompy/velocity_getting_started/index.idx \
+     -g /home/cbmr/jph712/projects/serup_velocytoLoompy/velocity_getting_started/transcript2hgnc.tab  \
+     -x 10xv3 \
+     -o {params.OUT_DIR}kite_count/{params.project}/{params.sample_name} \
+     -t 50 \
+     -c1 /home/cbmr/jph712/projects/serup_velocytoLoompy/velocity_getting_started/cdna_transcripts_to_capture.txt \
+     -c2 /home/cbmr/jph712/projects/serup_velocytoLoompy/velocity_getting_started/intron_transcripts_to_capture.txt \
+     --lamanno \
+     -w /raid5/home/cbmr/jph712/3M-february-2018.txt \
+     {input.read1} {input.read2}"
+
+# Hardcoding boogalloo
+#kbIndexPath="/home/cbmr/jph712/projects/serup_velocytoLoompy/velocity_getting_started"
+#fastq_path="/data/sc-10x/data-mkfastq/190707_A00642_0027_AH7MWNDRXX/190707_A00642_0027_AH7MWNDRXX/outs/fastq_path/H7MWNDRXX/"
+#barcodes="/raid5/home/cbmr/jph712/"
+#outdir="/projects/dylan/rausch_abay_vlmc/data/kallisto"
+#
+#kb count -i ${kbIndexPath}/index.idx 
+#-g ${kbIndexPath}/transcript2hgnc.tab -x 10xv3 -o ${outdir}/ZA10/ -t 50 -c1 ${kbIndexPath}/cdna_transcripts_to_capture.txt\
+# -c2 ${kbIndexPath}/intron_transcripts_to_capture.txt --lamanno -w ${barcodes}3M-february-2018.txt\
+# ${fastq_path}ZA10/ZA10_S1_L002_R1_001.fastq.gz ${fastq_path}ZA10/ZA10_S1_L002_R2_001.fastq.gz
+
+
+rule kallisto_dylan:
   input:
     "placeholder"
   output:
@@ -262,7 +355,7 @@ rule kallisto:
       <FASTQ files>                 ex. ZA10_S1_L002_R1_001.fastq.gz  ZA10_S1_L002_R2_001.fastq.gz
     """
 
-rule kallisto_count:
+rule kite_count2:
  input:
   expand("/projects/dylan/gen_fastq_output/SCOP_9/190707_A00642_0027_AH7MWNDRXX/outs/fastq_path/H7MWNDRXX/{sample_name}/{sample_name}_S1_L00{lane}_{read}_001.fastq.gz",
   lane=lane, read=read, sample_name=sample_name)
