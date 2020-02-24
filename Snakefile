@@ -60,7 +60,7 @@ rule all:
     #  read = read,
     #  lane = lane), #rule mkfastq
     #expand("/home/cbmr/xbq246/20200117-dylan_pipeline/development/outs/gen_fastq_output/fastqc/{project}/{sample_name}_{lane}/fastqc/results.html",
-    expand(OUTPUT_DIR + "/project}/gen_fastq_output/{run_name}/fastqc/{sample_name}__concat__R{pair}_001_fastqc.html",
+    expand(OUTPUT_DIR + "/{project}/gen_fastq_output/{run_name}/fastqc/{sample_name}__concat__R{pair}_001_fastqc.html",
       project = project,
       run_name = run_name,
       sample_name = sample_name,
