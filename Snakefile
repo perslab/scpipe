@@ -40,7 +40,7 @@ list_target_files = []
 
 # Generation of output for mkfastq - too complicated so far. We could of course just play this smart and assume that cellranger generates the dir instead wasting time specifying the reads and stuff
 for s_name in sample_name:
-  tmp = expand("/home/cbmr/xbq246/20200117-dylan_pipeline/development/outs/{project}/gen_fastq_output/{run_name}/fastq_path/H7MWNDRXX/{sample_name}/{sample_name}_{S_index}_L00{lane}_{read}_001.fastq.gz",
+  tmp = expand(OUT_DIR + "/{project}/gen_fastq_output/{run_name}/fastq_path/H7MWNDRXX/{sample_name}/{sample_name}_{S_index}_L00{lane}_{read}_001.fastq.gz",
         project = project,
         run_name = run_name,
         sample_name = s_name,
